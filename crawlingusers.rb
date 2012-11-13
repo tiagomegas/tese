@@ -142,6 +142,7 @@ class TwitterInspector
     dataset = $db[:utilizador]
     idusers = Array.new
     allusers = dataset.all
+    
     allusers.each { |item|
       idusers.push(item[:id]) }
     idusers.include? user.id
@@ -199,5 +200,22 @@ class TwitterInspector
     return idusers
    end
 
-  
+  def crawlUser(iduser)
+    dataset = $db[:utilizador]
+
+    listids = self.getAllFollowers
+    listusers = self.lookUpUsers(listusers)
+    filteredusers = self.filterValidUsers(listusers)
+
+    dataset.where(:id => iduser).update(:crawled=>true)
+
+    return filteredusers    
+
+  end
+
+  def crawlAndSave(iduser)
+    self.insertNewUsers(self.crawlUser)
+    
+  end
+
 end
