@@ -6,8 +6,10 @@ require './database.rb'
 class CrawlingUsers
 
 #  @db = Database.connect('Tese','localhost')
- @db = Sequel.connect(:database=>'Tese',:adapter=>'mysql2', :host=>'localhost', :user=>'root', :password=>'2001odisseianoespaco')
+  
+  
   def initialize
+    @db = Sequel.connect(:database=>'Tese',:adapter=>'mysql2', :host=>'localhost', :user=>'root', :password=>'2001odisseianoespaco')
     self.configure
   end
 
@@ -188,15 +190,15 @@ class CrawlingUsers
       self.insertUser(item)}
   end
 
-  def verifyUser(user)
-    dataset = @db[:utilizador]
-    idusers = Array.new
-    allusers = dataset.all
+  # def verifyUser(user)
+  #   dataset = @db[:utilizador]
+  #   idusers = Array.new
+  #   allusers = dataset.all
     
-    allusers.each { |item|
-      idusers.push(item[:id]) }
-    idusers.include? user.id
-  end
+  #   allusers.each { |item|
+  #     idusers.push(item[:id]) }
+  #   idusers.include? user.id
+  # end
 
   def verifyUserId(id, alluserids)
     #returns true if id in array
@@ -267,7 +269,6 @@ class CrawlingUsers
 
    end
       
-
    def getUncrawledUsers
      #gets all uncrawled users from DB
      idusers = Hash.new
