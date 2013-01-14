@@ -63,11 +63,12 @@ class TwitterAPI
       retry
     
     rescue Twitter::Error::BadGateway => error
+      puts "BadGateway ERRa!!1"
       retry
     
     rescue Twitter::Error::ClientError => error
-      retry
-    
+      puts "Client ERRa!!1"
+      
     end
   end
 
