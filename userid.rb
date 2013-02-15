@@ -1,5 +1,4 @@
-require 'twitter'
-require 'sequel'
+require 'active_support/time'
 require './twitterapi.rb'
 require './database.rb'
 
@@ -33,12 +32,16 @@ class UserID
 
 	def lookRandomUsers
 		while true
-			if self.lookRandomUser 
-				puts "OuKAY!" 
-
+			if a = self.lookRandomUser
+				puts a.screen_name
+				Database.insertUserInTable(a,:utilizadorporid) 
 			end
 		end
 		
 	end
 
 end
+
+# Invocação da execução
+u = UserID.new
+u.lookRandomUsers

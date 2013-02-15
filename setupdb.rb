@@ -6,6 +6,7 @@ class Database
 	def init
 
 	db = Sequel.connect(:database=>'Tese',:adapter=>'mysql2', :host=>'localhost', :user=>'root', :password=>'2001odisseianoespaco')
+	
 	#create the user table
 
 		db.create_table :utilizador do 

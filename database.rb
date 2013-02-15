@@ -113,4 +113,24 @@ class Database
   	
   end
 
+  # Isto vai meio à trolha. Este metodo é para inserir na mesma DB mas na tabela do user ID. No futuro, seria mais fancy modular todo o 
+  # código para as mesmas situações em tabelas diferentes!
+
+   def self.insertUserInTable(user,table)
+    
+    Database.connect
+
+    dataset=@db[table]
+    
+    dataset.insert(:name=> user.name, 
+                   :id=> user.id, 
+                   :screen_name=>user.screen_name,
+                   :location=> user.location, 
+                   :url=>user.url, 
+                   :followers_count=>user.followers_count,
+                   :friends_count=>user.friends_count,
+                   :lang=>user.lang
+                   )
+  end
+
 end
