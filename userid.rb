@@ -31,10 +31,11 @@ class UserID
 	end
 
 	def lookRandomUsers
-		while true
+		count=0
+		while count!=10000
 			if a = self.lookRandomUser
-				puts a.screen_name
 				Database.insertUserInTable(a,:utilizadorporid) 
+				count+=1
 			end
 		end
 		

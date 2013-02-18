@@ -1,4 +1,5 @@
 require 'sequel'
+require 'active_support/time'
 
 class Database
 
@@ -125,12 +126,18 @@ class Database
     dataset.insert(:name=> user.name, 
                    :id=> user.id, 
                    :screen_name=>user.screen_name,
+                   :description=>user.description,
                    :location=> user.location, 
                    :url=>user.url, 
                    :followers_count=>user.followers_count,
                    :friends_count=>user.friends_count,
-                   :lang=>user.lang
-                   )
+                   :lang=>user.lang,
+                   :statuses_count=>user.statuses_count,
+                   :user_date=>user.created_at.utc,
+                   :lastweet_date=>user.status.created_at,
+                   :entry_date=>Time.now.utc)
+    
+    puts "#{Time.now}: Inserido utilizador #{user.screen_name} na BD"
   end
 
 end

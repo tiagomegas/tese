@@ -39,14 +39,20 @@ class TwitterAPI
     response = Twitter.follower_ids(userid, {:cursor=>cursor})
     
     rescue Twitter::Error::TooManyRequests => error
-      puts "Rate Limit of #{error.rate_limit} hit!"
+      puts "#{Time.now}: Rate Limit hit! Going to sleep for #{error.rate_limit.reset_in}"
       sleep error.rate_limit.reset_in
       retry
     
     rescue Twitter::Error::BadGateway => error
+      puts "#{Time.now}: BadGateway ERRa!!1"
       retry
     
     rescue Twitter::Error::ClientError => error
+      puts "#{Time.now}: Client Error!"
+      retry
+
+    rescue Twitter::Error::ServiceUnavailable => error
+      puts "#{Time.now}: Service is down! Over Capacity Error!" 
       retry
     
     end
@@ -58,17 +64,21 @@ class TwitterAPI
     user = Twitter.user(id)
     
     rescue Twitter::Error::TooManyRequests => error
-      puts "Rate Limit of #{error.rate_limit} hit!"
+      puts "#{Time.now}: Rate Limit hit! Too many requests! Going to sleep for #{error.rate_limit.reset_in}"
       sleep error.rate_limit.reset_in
       retry
     
     rescue Twitter::Error::BadGateway => error
-      puts "BadGateway ERRa!!1"
+      puts "#{Time.now}: BadGateway Error!"
       retry
     
     rescue Twitter::Error::ClientError => error
-      puts "Client ERRa!!1"
-      
+      puts "#{Time.now}: Client Error!"
+    
+    rescue Twitter::Error::ServiceUnavailable => error
+      puts "#{Time.now}: Service is down! Over Capacity Error!" 
+      retry  
+    
     end
   end
 
@@ -77,14 +87,20 @@ class TwitterAPI
     userlist = Twitter.users(ids)
     
     rescue Twitter::Error::TooManyRequests => error
-      puts "Rate Limit of #{error.rate_limit} hit!"
+      puts "#{Time.now}: Rate Limit hit! Too many requests! Going to sleep for #{error.rate_limit.reset_in}"
       sleep error.rate_limit.reset_in
       retry
     
     rescue Twitter::Error::BadGateway => error
+      puts "#{Time.now}: BadGateway Error!"
       retry
     
     rescue Twitter::Error::ClientError => error
+      puts "#{Time.now}: Client Error!"
+      retry
+      
+    rescue Twitter::Error::ServiceUnavailable => error
+      puts "#{Time.now}: Service is down! Over Capacity Error!" 
       retry
     end
   end
@@ -124,7 +140,7 @@ class TwitterAPI
 
     chunkfollowers = followers.each_slice(100).to_a
     chunkfollowers.each{ |item|
-      puts "Slicing list!"
+      puts "#{Time.now}: Slicing list!"
       response = self.lookUpUsers(item)
       followerlist.concat(response) }
 
@@ -143,7 +159,6 @@ class TwitterAPI
   end
   
   # Methods used to check user values and to test and filter them
-
   # Using one month to determine wether the user is active or not
   def checkLastStatusDate(user)
     if user.status == nil 
