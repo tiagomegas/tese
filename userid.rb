@@ -10,8 +10,8 @@ class UserID
 
     @twitter = TwitterAPI.new
 
-    @maxnumber = 958792842
-    #account created at 19 Nov 22:49:23 2012
+    @maxnumber = 1193816142
+    #account created at Mon Feb 18 16:26:31 +0000 2013
   	end
 
 	def generateRandom

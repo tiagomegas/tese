@@ -87,7 +87,7 @@ class TwitterAPI
     userlist = Twitter.users(ids)
     
     rescue Twitter::Error::TooManyRequests => error
-      puts "#{Time.now}: Rate Limit hit! Too many requests! Going to sleep for #{error.rate_limit.reset_in}"
+      puts "#{Time.now}: Rate Limit hit! Too many requests! Going to sleep for #{error.rate_limit.reset_in} seconds"
       sleep error.rate_limit.reset_in
       retry
     
@@ -97,7 +97,7 @@ class TwitterAPI
     
     rescue Twitter::Error::ClientError => error
       puts "#{Time.now}: Client Error!"
-      retry
+    
       
     rescue Twitter::Error::ServiceUnavailable => error
       puts "#{Time.now}: Service is down! Over Capacity Error!" 
@@ -149,7 +149,7 @@ class TwitterAPI
   end
 
   def verifyUser(user)
-    dataset = @db[:utilizador]
+    dataset = @db[:utilizadorporfriendfol]
     idusers = Array.new
     allusers = dataset.all
     
@@ -187,18 +187,11 @@ class TwitterAPI
     list
   end
 
-
-
   def verifyUserId(id, alluserids)
     #returns true if id in array
     alluserids.include? id
   end
 
-  def buildSeed(names)
-   
-    seed = self.lookUpUsers(names)
-    self.insertUsers(seed)
-  end
 
   #from an array of ids, only does the lookup for the ones that
   #don't belong in DB. Returns array of users

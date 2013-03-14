@@ -1,4 +1,5 @@
 require 'tweetstream'
+require './database.rb'
 
 class TwitterStream
 
@@ -26,7 +27,8 @@ def getRawSample
 	  # method access to its keys.
 	  puts "#{status.user.screen_name}"
 	  puts "#{status.text}"
-	 
+	  Database.insertTweetInTable(status,:tweetsporstream)
+	 	
 	end
 end
 

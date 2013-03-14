@@ -22,12 +22,12 @@ class Database
 			
 	end
 
-	def self.getUserIdsFromDb
+	def self.getUserIdsFromDb(table)
 		
 		Database.connect
     
     idusers = Array.new
-    dataset = @db[:utilizador]
+    dataset = @db[table]
     allusers = dataset.all    
 
     allusers.each { |item|
@@ -36,40 +36,32 @@ class Database
     idusers
   end
 
-  def self.insertUser(user)
-    
-    Database.connect
-
-    dataset=@db[:utilizador]
-    
-    dataset.insert(:name=> user.name, 
-                   :id=> user.id, 
-                   :screen_name=>user.screen_name,
-                   :location=> user.location, 
-                   :url=>user.url, 
-                   :followers_count=>user.followers_count,
-                   :friends_count=>user.friends_count,
-                   :lang=>user.lang,
-                   :crawled=>false)
-  end
-
-  def self.insertUsers(users)
+  def self.insertUsers(users,table)
     users.each {|item|
-      self.insertUser(item)}
+      self.insertUserInTable(item,table)}
   end
 
-  def self.insertFollower(userid, followerid)
+  def self.insertFollowerRelation(userid, followerid)
     Database.connect
 
-    dataset=@db[:seguidores]
+    dataset=@db[:followers]
 
     dataset.insert(:id=> userid,
                    :followerid=> followerid)
   end
 
-  def self.InsertFollowers(userid, followersid)
+  def self.insertFriend(userid, friendid)
+    Database.connect
+
+    dataset=@db[:friends]
+
+    dataset.insert(:id=> userid,
+                   :friendid=> followerid)
+  end
+
+  def self.InsertFollowerRelations(userid, followersid)
     followersid.each{ |item| 
-      self.insertFollower(userid, item)
+      self.insertFollowerRelation(userid, item)
       puts "Inseri relacao de seguidor!" 
     }
   end
@@ -81,7 +73,7 @@ class Database
     puts @db
 
     idusers = Hash.new
-    dataset = @db[:utilizador]
+    dataset = @db[:utilizadorporfriendfol]
     uncrawledusers = dataset.filter(:crawled => 0)  
 
     uncrawledusers.each { |item|
@@ -96,21 +88,22 @@ class Database
  
   def self.insertNewUsers(userid, users)
     
-    self.InsertFollowers(userid,users[1])
+    self.InsertFollowerRelations(userid,users[1])
 
     users[0].each { |item|
       puts "user:" + item.screen_name
-      self.insertUser(item)
+      self.insertUserInTable(item,:utilizadorporfriendfol)
       puts "Inseri item!"
-      self.insertFollower(userid,item.id)
+      self.insertFollowerRelation(userid,item.id)
       puts "Inseri relacao de seguidor!"
       }
 
   	end
+
   def self.setUserCrawled(iduser)
   	Database.connect
-  	dataset = @db[:utilizador]
-  	dataset.where(:id => iduser).update(:crawled=>true)
+  	dataset = @db[:utilizadorporfriendfol]
+  	dataset.where(:id => iduser).update(:crawled=>1)
   	
   end
 
@@ -122,7 +115,15 @@ class Database
     Database.connect
 
     dataset=@db[table]
+
+    # Controlo do status para evitar erro ao criar registo
     
+    if !user.status
+      tweetdate=nil
+    else 
+      tweetdate=user.status.created_at.utc
+    end
+
     dataset.insert(:name=> user.name, 
                    :id=> user.id, 
                    :screen_name=>user.screen_name,
@@ -134,10 +135,23 @@ class Database
                    :lang=>user.lang,
                    :statuses_count=>user.statuses_count,
                    :user_date=>user.created_at.utc,
-                   :lastweet_date=>user.status.created_at,
+                   :lastweet_date=>tweetdate,
                    :entry_date=>Time.now.utc)
     
     puts "#{Time.now}: Inserido utilizador #{user.screen_name} na BD"
+  end
+
+  def self.insertTweetInTable(tweet,table)
+    Database.connect
+
+    dataset=@db[table]
+    
+    dataset.insert(:status=> tweet.text 
+                   )
+    
+    puts "#{Time.now}: Inserido tweet #{tweet.id} na BD"
+
+
   end
 
 end
