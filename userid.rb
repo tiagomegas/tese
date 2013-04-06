@@ -3,9 +3,7 @@ require './twitterapi.rb'
 require './database.rb'
 
 class UserID
-	
-	
-	
+
 	def initialize
 
     @twitter = TwitterAPI.new
@@ -16,6 +14,21 @@ class UserID
 
 	def generateRandom
 		return 1 + rand(@maxnumber)
+	end
+
+	def generateRandomNumbers
+		list = Array.new
+		
+		begin			
+			n = generateRandom
+			if !list.include? n 
+				puts n
+				list.push(n)
+				end
+		end until list.length == 100			
+		
+		return list
+
 	end
 
 	def maxnumber
@@ -31,6 +44,14 @@ class UserID
 	end
 
 	def lookRandomUsers
+		numbers = self.generateRandomNumbers
+		return @twitter.lookUpUsers(self.generateRandomNumbers)
+		
+	end
+
+	
+
+	def lookById
 		count=0
 		while count!=10000
 			if a = self.lookRandomUser
@@ -41,8 +62,18 @@ class UserID
 		
 	end
 
+	def lookByIds
+		count=0
+		while count<10000
+			a = self.lookRandomUsers
+			Database.insertUsers(a,:utilizadorporid) 
+ 			count+=a.length
+		end
+		
+	end
+
 end
 
 # Invocação da execução
 u = UserID.new
-u.lookRandomUsers
+u.lookByIds

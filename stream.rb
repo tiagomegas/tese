@@ -17,7 +17,11 @@ end
 
 def initialize
 	self.configure
-end
+	end
+
+
+
+
 
 def getRawSample
 	# This will pull a sample of all tweets based on
@@ -30,6 +34,16 @@ def getRawSample
 	  Database.insertTweetInTable(status,:tweetsporstream)
 	 	
 	end
+
 end
+
+def getFilteredData(filter)
+
+	TweetStream::Client.new.track(filter[0], filter[1]) do |status|
+  	puts "#{status.created_at} #{status.user.screen_name}: #{status.text}"
+
+	end
+
+	end
 
 end

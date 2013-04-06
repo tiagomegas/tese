@@ -28,13 +28,59 @@ class TwitterAPI
 
   end
 
-  def getFriends(name)
+  def getFriends(userid,cursor)
 
-    ids = Twitter.friend_ids(name)
+    begin
+    
+    response = Twitter.friend_ids(name, {:cursor=>cursor})
 
-  end
+      rescue Twitter::Error::TooManyRequests => error
+        puts "#{Time.now}: Rate Limit hit! Going to sleep for #{error.rate_limit.reset_in}"
+        sleep error.rate_limit.reset_in
+        retry
+    
+      rescue Twitter::Error::BadGateway => error
+        puts "#{Time.now}: BadGateway ERRa!!1"
+        retry
+    
+      rescue Twitter::Error::ClientError => error
+        puts "#{Time.now}: Client Error!"
+        retry
+
+      rescue Twitter::Error::ServiceUnavailable => error
+        puts "#{Time.now}: Service is down! Over Capacity Error!" 
+        retry
+    
+    end
+   end
+  
+  # term é o contéudo da query. Count vai de 0 a 100 por chamada. Since_id é o limite min de tweet, sendo que 0 o default.
+  def searchTerm(term,count,since_id)
+    begin
+      
+    response = Twitter.search(term,{:count=>count, :since_id=>since_id})
+    
+    rescue Twitter::Error::TooManyRequests => error
+      puts "#{Time.now}: Rate Limit hit! Going to sleep for #{error.rate_limit.reset_in}"
+      sleep error.rate_limit.reset_in
+      retry
+
+    rescue Twitter::Error::BadGateway => error
+      puts "#{Time.now}: BadGateway ERRa!!1"
+      retry
+
+    rescue Twitter::Error::ServiceUnavailable => error
+      puts "#{Time.now}: Service is down! Over Capacity Error!" 
+      retry
+
+    
+    end
+
+    
+   end
 
   def getFollowers(userid,cursor)
+    
     begin
     response = Twitter.follower_ids(userid, {:cursor=>cursor})
     
@@ -148,6 +194,7 @@ class TwitterAPI
     
   end
 
+  #metodo a não ser usado!
   def verifyUser(user)
     dataset = @db[:utilizadorporfriendfol]
     idusers = Array.new
@@ -227,6 +274,8 @@ class TwitterAPI
     listusers
 
    end
+
+   
 
     #gets all uncrawled users from DB    
 end 

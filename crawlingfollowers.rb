@@ -107,7 +107,7 @@ class CrawlingUsers
     # only the new users
     listusers = @twitter.getFollowersInfo(listusersids-oldusers)
    
-     #analyse the user's info, to filter the valid users. This will not be used at the moment!
+    #analyse the user's info, to filter the valid users. This will not be used at the moment!
     # filteredusers = self.filterValidUsers(listusers)
 
     
