@@ -19,11 +19,7 @@ def initialize
 	self.configure
 	end
 
-
-
-
-
-def getRawSample
+def getSample
 	# This will pull a sample of all tweets based on
 	# your Twitter account's Streaming API role.
 	TweetStream::Client.new.sample do |status|
@@ -38,12 +34,13 @@ def getRawSample
 end
 
 def getFilteredData(filter)
-
-	TweetStream::Client.new.track(filter[0], filter[1]) do |status|
+	#Filters the data of the stream, according to the terms. the arg filter is an array of terms.
+	TweetStream::Client.new.track(filter) do |status|
   	puts "#{status.created_at} #{status.user.screen_name}: #{status.text}"
-
+  	Database.insertTweetInTable(status,:tweetsporstream)
 	end
 
 	end
 
 end
+

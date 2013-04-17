@@ -50,13 +50,13 @@ class Database
                    :followerid=> followerid)
   end
 
-  def self.insertFriend(userid, friendid)
+  def self.insertFriendRelation(userid, friendid)
     Database.connect
 
     dataset=@db[:friends]
 
     dataset.insert(:id=> userid,
-                   :friendid=> followerid)
+                   :friendid=> friendid)
   end
 
   def self.InsertFollowerRelations(userid, followersid)
@@ -66,18 +66,45 @@ class Database
     }
   end
 
-  def self.getUncrawledUsers
-  		
-  	Database.connect	 
+  def self.InsertFriendRelations(userid, friendsid)
+    friendsid.each{ |item| 
+      self.insertFriendRelation(userid, item)
+      puts "Inseri relacao de amigo!" 
+    }
+  end
+
+  def self.InsertRelations(userid,list, table)
+    if table==:utilizadorporfol
+      self.InsertFollowerRelations(userid,list)
+    elsif table==:utilizadorporfriend
+      self.InsertFriendRelations(userid, list)
+    end
+
+  end
+    
+  
+
+  def self.getUncrawledUsers(table)
+  	puts table	
+    if table==:utilizadorporfol
+      puts table
+      count = :followers_count
+    elsif table==:utilizadorporfriend
+      puts table
+      count = :friends_count
+    end  
+  	
+    Database.connect	 
     
     puts @db
 
+
     idusers = Hash.new
-    dataset = @db[:utilizadorporfriendfol]
+    dataset = @db[table]
     uncrawledusers = dataset.filter(:crawled => 0)  
 
     uncrawledusers.each { |item|
-     idusers.store(item[:id],item[:followers_count]) }
+     idusers.store(item[:id],item[count]) }
 
     return idusers
    end
@@ -86,23 +113,28 @@ class Database
   # is a list of new users (users that are not in the DB). users[1]
   # are old users, so only the follower relationship is inserted.
  
-  def self.insertNewUsers(userid, users)
+  def self.insertNewUsers(userid, users, table)
     
-    self.InsertFollowerRelations(userid,users[1])
+    self.InsertRelations(userid,users[1],table)
 
     users[0].each { |item|
       puts "user:" + item.screen_name
-      self.insertUserInTable(item,:utilizadorporfriendfol)
+      self.insertUserInTable(item,table)
       puts "Inseri item!"
-      self.insertFollowerRelation(userid,item.id)
-      puts "Inseri relacao de seguidor!"
+      
+      if table==:utilizadorporfol
+        self.insertFollowerRelation(userid,item.id)
+        puts "Inseri relacao de seguidor!"
+      elsif table==:utilizadorporfriend
+        self.insertFriendRelation(userid,item.id)
+      end        
       }
 
   	end
 
-  def self.setUserCrawled(iduser)
+  def self.setUserCrawled(iduser,table)
   	Database.connect
-  	dataset = @db[:utilizadorporfriendfol]
+  	dataset = @db[table]
   	dataset.where(:id => iduser).update(:crawled=>1)
   	
   end
@@ -146,12 +178,28 @@ class Database
 
     dataset=@db[table]
     
-    dataset.insert(:status=> tweet.text 
-                   )
+    
+    dataset.insert(:status => tweet.text,
+                   :entry_date => Time.now.utc,
+                   :user_id => tweet.user.id,
+                   :source => tweet.source,
+                   :created_at => tweet.created_at,
+                   :in_reply_to_status =>  tweet.in_reply_to_status_id,
+                   :in_reply_to_user => tweet.in_reply_to_user_id,
+                   :lang => tweet[:attrs][:lang],
+                   :retweeted => tweet.retweeted)
     
     puts "#{Time.now}: Inserido tweet #{tweet.id} na BD"
 
 
+  end
+
+  def self.insertTweetsInTable(tweets,table)
+    
+    tweets.each { |item| 
+      self.insertTweetInTable(item,table)    
+    
+    }
   end
 
 end

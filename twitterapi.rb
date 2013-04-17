@@ -32,7 +32,7 @@ class TwitterAPI
 
     begin
     
-    response = Twitter.friend_ids(name, {:cursor=>cursor})
+    response = Twitter.friend_ids(userid, {:cursor=>cursor})
 
       rescue Twitter::Error::TooManyRequests => error
         puts "#{Time.now}: Rate Limit hit! Going to sleep for #{error.rate_limit.reset_in}"
@@ -41,6 +41,7 @@ class TwitterAPI
     
       rescue Twitter::Error::BadGateway => error
         puts "#{Time.now}: BadGateway ERRa!!1"
+        sleep 5
         retry
     
       rescue Twitter::Error::ClientError => error
@@ -72,6 +73,10 @@ class TwitterAPI
     rescue Twitter::Error::ServiceUnavailable => error
       puts "#{Time.now}: Service is down! Over Capacity Error!" 
       retry
+
+      rescue Twitter::Error::Unauthorized => error
+        puts "#{Time.now}: Could not authenticate you" 
+      
 
     
     end
@@ -143,10 +148,15 @@ class TwitterAPI
     
     rescue Twitter::Error::ClientError => error
       puts "#{Time.now}: Client Error!"
+      userlist={}
     
       
     rescue Twitter::Error::ServiceUnavailable => error
       puts "#{Time.now}: Service is down! Over Capacity Error!" 
+      retry
+
+    rescue Twitter::Error::InternalServerError => error
+      puts "Something is technically wrong."
       retry
     end
   end
@@ -179,9 +189,32 @@ class TwitterAPI
       followers
   end
 
+  def getAllFriends(userid,friendscount)
+      puts userid      
+      count = friendscount/5000
+      puts count
+      
+      if count == 0  
+        friends = self.getFriends(userid,-1).ids
+      else
+        response = self.getFriends(userid,-1)
+        friends = response.ids
+        
+        count.times do
+          puts "."
+          response = self.getFriends(userid,response.next_cursor)
+          friends.concat(response.ids)
+          puts friends.length  
+        end
+      
+      end
+      friends
+  end
 
-# Gets all the user Info regarding a list of followers
-  def getFollowersInfo(followers)
+
+# Gets all the user Info regarding a list of followers. 
+#It now works for followers and friends, despite the variables refering to followers
+  def getUsersInfo(followers)
     followerlist = Array.new
 
     chunkfollowers = followers.each_slice(100).to_a

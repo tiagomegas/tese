@@ -2,13 +2,14 @@ require 'active_support/time'
 require './twitterapi.rb'
 require './database.rb'
 
-class CrawlingFollowers
+class CrawlingFriends
 
   def initialize
 
     @twitter = TwitterAPI.new
-    @tableusers = :utilizadorporfol
-    @tablefollowers = :followers
+    @tableusers = :utilizadorporfriend
+    @tablefriends = :friends
+
 
   end
 
@@ -93,14 +94,14 @@ class CrawlingFollowers
    end
       
 
-  def crawlUser(iduser, followerscount)
+  def crawlUser(iduser, friendscount)
     puts 'CrawlUser'
     puts iduser
-    puts followerscount
+    puts friendscount
 
     savedids = Database.getUserIdsFromDb(@tableusers)
     
-    listusersids = @twitter.getAllFollowers(iduser, followerscount)
+    listusersids = @twitter.getAllFriends(iduser, friendscount)
 
     # to filter the users that are new to the DB
     #newusers = self.filterNewUsers(listusersids, savedids)
@@ -116,18 +117,18 @@ class CrawlingFollowers
     # filteredusers = self.filterValidUsers(listusers)
 
     
-    Database.setUserCrawled(iduser,table)
+    Database.setUserCrawled(iduser,@tableusers)
 
     return listusers, oldusers
 
   end
 
-  def crawlAndSave(iduser, followerscount)
+  def crawlAndSave(iduser, friendscount)
     puts 'CrawlAndSave'
     puts iduser
-    puts followerscount
+    puts friendscount
 
-    crawlresponse = self.crawlUser(iduser, followerscount)
+    crawlresponse = self.crawlUser(iduser, friendscount)
     
     Database.insertNewUsers(iduser, crawlresponse,@tableusers)
   end
@@ -155,7 +156,7 @@ class CrawlingFollowers
 end
 
 #invocação da execução
-crawl = CrawlingFollowers.new
+crawl = CrawlingFriends.new
 table = crawl.getTable()
 uncrawled = Database.getUncrawledUsers(table)
 #Construir seed se necessário

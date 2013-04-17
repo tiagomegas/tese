@@ -4,27 +4,36 @@ require './database.rb'
 
 class SearchTweet
 
-	 def initialize
+   def initialize
 
     @twitter = TwitterAPI.new
-    @table = :tweetsporsearch
+    @table = :twittersearch
 
-  end	
+  end 
 
   def getSearchTweets(term)
-  	max_id=0
+    # It receives an array of terms, to be later searched by the Search API.
+    max_id=0
+    size=0
     statuses = Array.new
-
-
-    5.times do 
-      tweets = @twitter.searchTerm(term,100,max_id)
+    list = term.join(" OR ")
+    
+      100.times do 
+      tweets = @twitter.searchTerm(list,100,max_id)
       puts "going to wait for more tweets mateys!"
       puts "since_id will be: #{tweets.max_id}"
+      Database.insertTweetsInTable(tweets.statuses, @table)
+      temp=tweets.statuses.length
       max_id=tweets.max_id
-      statuses.concat(tweets.statuses)
-      sleep 240
+      #statuses.concat(tweets.statuses)
+     sleep 240
     end
-  return statuses
   end
-	
+  
 end
+
+#Invocação do método
+t=SearchTweet.new
+terms = ['relvas','governo','cavaco','socrates','ps','psd']
+t.getSearchTweets(terms)
+

@@ -7,8 +7,10 @@ class UserID
 	def initialize
 
     @twitter = TwitterAPI.new
-
+    @table = :utilizadorporid
     @maxnumber = 1193816142
+    @generatedids = Database.getUserIdsFromDb(@table)
+    
     #account created at Mon Feb 18 16:26:31 +0000 2013
   	end
 
@@ -16,13 +18,14 @@ class UserID
 		return 1 + rand(@maxnumber)
 	end
 
-	def generateRandomNumbers
+	def generateRandomNumbers()
 		list = Array.new
 		
 		begin			
 			n = generateRandom
-			if !list.include? n 
+			if !@generatedids.include? n 
 				puts n
+				@generatedids.push(n)
 				list.push(n)
 				end
 		end until list.length == 100			
@@ -55,7 +58,7 @@ class UserID
 		count=0
 		while count!=10000
 			if a = self.lookRandomUser
-				Database.insertUserInTable(a,:utilizadorporid) 
+				Database.insertUserInTable(a,@table) 
 				count+=1
 			end
 		end
@@ -64,9 +67,9 @@ class UserID
 
 	def lookByIds
 		count=0
-		while count<10000
+		while true
 			a = self.lookRandomUsers
-			Database.insertUsers(a,:utilizadorporid) 
+			Database.insertUsers(a,@table) 
  			count+=a.length
 		end
 		
@@ -77,3 +80,4 @@ end
 # Invocação da execução
 u = UserID.new
 u.lookByIds
+
