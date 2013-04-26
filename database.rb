@@ -157,7 +157,7 @@ class Database
     end
 
     dataset.insert(:name=> user.name, 
-                   :id=> user.id, 
+                   :id=> user.attrs[:id_str], 
                    :screen_name=>user.screen_name,
                    :description=>user.description,
                    :location=> user.location, 
@@ -168,7 +168,12 @@ class Database
                    :statuses_count=>user.statuses_count,
                    :user_date=>user.created_at.utc,
                    :lastweet_date=>tweetdate,
-                   :entry_date=>Time.now.utc)
+                   :entry_date=>Time.now.utc,
+                   :protected=>user.protected,
+                   :geo=>user.geo_enabled,
+                   :verified=>user.verified,
+                   :listed_count=>user.listed_count,
+                   :timezone=>user.time_zone)
     
     puts "#{Time.now}: Inserido utilizador #{user.screen_name} na BD"
   end
@@ -177,17 +182,29 @@ class Database
     Database.connect
 
     dataset=@db[table]
+    #control coordinates
+    if tweet.attrs[:coordinates]!=nil
+      coordx=tweet.attrs[:coordinates][:coordinates][0]
+      coordy=tweet.attrs[:coordinates][:coordinates][1]
+      else 
+        coordx=nil
+        coordy=nil
+    end
+
     
-    
-    dataset.insert(:status => tweet.text,
+    dataset.insert(:id=> tweet.attrs[:id_str],
+                   :status => tweet.text,
                    :entry_date => Time.now.utc,
-                   :user_id => tweet.user.id,
+                   :user_id => tweet.attrs[:id_str],
                    :source => tweet.source,
                    :created_at => tweet.created_at,
-                   :in_reply_to_status =>  tweet.in_reply_to_status_id,
-                   :in_reply_to_user => tweet.in_reply_to_user_id,
+                   :in_reply_to_status =>  tweet.attrs[:in_reply_to_status_id_str],
+                   :in_reply_to_user => tweet.attrs[:in_reply_to_user_id_str],
                    :lang => tweet[:attrs][:lang],
-                   :retweeted => tweet.retweeted)
+                   :retweet_count=>tweet.retweet_count,
+                   :favorite_count=>tweet.attrs[:favorite_count],
+                   :coordx=>coordx,
+                   :coordy=>coordy)
     
     puts "#{Time.now}: Inserido tweet #{tweet.id} na BD"
 
@@ -200,6 +217,17 @@ class Database
       self.insertTweetInTable(item,table)    
     
     }
+  end
+
+  def self.insertErrorInTable(error,method)
+    Database.connect
+
+    dataset=@db[:erros]
+    
+    
+    dataset.where(:metodo=>method).update(error=>error + 1)
+    
+
   end
 
 end

@@ -9,6 +9,8 @@ class CrawlingFollowers
     @twitter = TwitterAPI.new
     @tableusers = :utilizadorporfol
     @tablefollowers = :followers
+    @method = "utilizadorporfol"
+    @timelimit = Time.now + 2.days
 
   end
 
@@ -17,7 +19,7 @@ class CrawlingFollowers
   end
 
   def buildSeed(names)   
-    seed = @twitter.lookUpUsers(names)
+    seed = @twitter.lookUpUsers(names,@method)
     Database.insertUsers(seed,@tableusers)
   end
 
@@ -65,7 +67,7 @@ class CrawlingFollowers
           listusers.push(item)
       end }
 
-    @twitter.lookUpUsers(listusers)
+    @twitter.lookUpUsers(listusers,@method)
    end
 
    def filterNewUsers(userids, savedids)
@@ -101,6 +103,9 @@ class CrawlingFollowers
     savedids = Database.getUserIdsFromDb(@tableusers)
     
     listusersids = @twitter.getAllFollowers(iduser, followerscount)
+    if listusersids == {}
+      return {}
+    end
 
     # to filter the users that are new to the DB
     #newusers = self.filterNewUsers(listusersids, savedids)
@@ -110,39 +115,43 @@ class CrawlingFollowers
     
     # to get all the info from the users.listuserids-oldusers give
     # only the new users
-    listusers = @twitter.getUsersInfo(listusersids-oldusers)
+    listusers = @twitter.getUsersInfo(listusersids-oldusers,@method)
    
     #analyse the user's info, to filter the valid users. This will not be used at the moment!
     # filteredusers = self.filterValidUsers(listusers)
 
     
-    Database.setUserCrawled(iduser,table)
+    Database.setUserCrawled(iduser,@tableusers)
 
     return listusers, oldusers
 
   end
 
   def crawlAndSave(iduser, followerscount)
-    puts 'CrawlAndSave'
-    puts iduser
-    puts followerscount
+   
+    puts "userid: #{iduser}"
+    puts "followerscount: #{followerscount}"
 
     crawlresponse = self.crawlUser(iduser, followerscount)
+
+    if crawlresponse == {}
+      return
+    end
     
     Database.insertNewUsers(iduser, crawlresponse,@tableusers)
   end
 
   def crawlAllUsers(uncrawled)
-      
+    
       uncrawled.each { |key, value| 
       self.crawlAndSave(key, value)
       }
 
       uncrawled = Database.getUncrawledUsers(@tableusers)
 
-    #Termina execução caso já não existam mais utilizadores para explorar
-    if uncrawled.length == 0
-      puts "no more users to crawl! The end!"
+    #Termina execução caso já não existam mais utilizadores para explorar, ou o tempo limite seja ultrapassado
+    if uncrawled.length == 0 || Time.now > @timelimit
+      puts "The crawl is over!!! See you!"
       return  
     end
 

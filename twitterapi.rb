@@ -1,6 +1,7 @@
 require 'twitter'
-require 'sequel'
+require './database.rb'
 require 'active_support/time'
+
 
 
 class TwitterAPI
@@ -29,53 +30,74 @@ class TwitterAPI
   end
 
   def getFriends(userid,cursor)
-
+    method="utilizadorporfriend"
     begin
     
     response = Twitter.friend_ids(userid, {:cursor=>cursor})
 
       rescue Twitter::Error::TooManyRequests => error
         puts "#{Time.now}: Rate Limit hit! Going to sleep for #{error.rate_limit.reset_in}"
+        Database.insertErrorInTable(:toomany,method)
         sleep error.rate_limit.reset_in
         retry
     
       rescue Twitter::Error::BadGateway => error
         puts "#{Time.now}: BadGateway ERRa!!1"
+        Database.insertErrorInTable(:badgateway,method)
         sleep 5
         retry
     
       rescue Twitter::Error::ClientError => error
-        puts "#{Time.now}: Client Error!"
-        retry
+        Database.insertErrorInTable(:clienterror,method)
+        puts "#{Time.now}: Client Error!Aparently all users are unavailable!"
+        
+        
 
       rescue Twitter::Error::ServiceUnavailable => error
+        Database.insertErrorInTable(:serviceunav,method)
         puts "#{Time.now}: Service is down! Over Capacity Error!" 
         retry
+
+        rescue Twitter::Error::InternalServerError => error
+        Database.insertErrorInTable(:internalserv,method)
+        puts "#{Time.now}: InternalServerError: Something is technically wrong." 
+        retry
+
+
     
     end
    end
   
   # term é o contéudo da query. Count vai de 0 a 100 por chamada. Since_id é o limite min de tweet, sendo que 0 o default.
   def searchTerm(term,count,since_id)
+    method="twittersearch"
     begin
       
     response = Twitter.search(term,{:count=>count, :since_id=>since_id})
     
     rescue Twitter::Error::TooManyRequests => error
+      Database.insertErrorInTable(:toomany,method)
       puts "#{Time.now}: Rate Limit hit! Going to sleep for #{error.rate_limit.reset_in}"
       sleep error.rate_limit.reset_in
       retry
 
     rescue Twitter::Error::BadGateway => error
+      Database.insertErrorInTable(:badgateway,method)
       puts "#{Time.now}: BadGateway ERRa!!1"
       retry
 
     rescue Twitter::Error::ServiceUnavailable => error
+      Database.insertErrorInTable(:serviceunav,method)
       puts "#{Time.now}: Service is down! Over Capacity Error!" 
       retry
 
       rescue Twitter::Error::Unauthorized => error
         puts "#{Time.now}: Could not authenticate you" 
+
+      rescue Twitter::Error::InternalServerError => error
+      Database.insertErrorInTable(:internalserv,method)
+      puts "#{Time.now}: InternalServerError: Something is technically wrong." 
+      retry
       
 
     
@@ -85,77 +107,94 @@ class TwitterAPI
    end
 
   def getFollowers(userid,cursor)
-    
+    method="utilizadorporfol"
     begin
     response = Twitter.follower_ids(userid, {:cursor=>cursor})
     
     rescue Twitter::Error::TooManyRequests => error
+      Database.insertErrorInTable(:toomany,method)
       puts "#{Time.now}: Rate Limit hit! Going to sleep for #{error.rate_limit.reset_in}"
       sleep error.rate_limit.reset_in
       retry
     
     rescue Twitter::Error::BadGateway => error
+      Database.insertErrorInTable(:badgateway,method)
       puts "#{Time.now}: BadGateway ERRa!!1"
       retry
     
     rescue Twitter::Error::ClientError => error
-      puts "#{Time.now}: Client Error!"
-      retry
+      Database.insertErrorInTable(:clienterror,method)
+      puts "#{Time.now}: Client Error!Aparently all users are unavailable!"
+     
+      
 
     rescue Twitter::Error::ServiceUnavailable => error
+      Database.insertErrorInTable(:serviceunav,method)
       puts "#{Time.now}: Service is down! Over Capacity Error!" 
       retry
     
     end
   end
 
-  def lookUpUser(id)
+  def lookUpUser(id,method)
     
    begin
     user = Twitter.user(id)
     
     rescue Twitter::Error::TooManyRequests => error
+      Database.insertErrorInTable(:toomany,method)
       puts "#{Time.now}: Rate Limit hit! Too many requests! Going to sleep for #{error.rate_limit.reset_in}"
       sleep error.rate_limit.reset_in
       retry
     
     rescue Twitter::Error::BadGateway => error
+      Database.insertErrorInTable(:badgateway,method)
       puts "#{Time.now}: BadGateway Error!"
       retry
     
     rescue Twitter::Error::ClientError => error
+      Database.insertErrorInTable(:clienterror,method)
       puts "#{Time.now}: Client Error!"
+
     
     rescue Twitter::Error::ServiceUnavailable => error
+      Database.insertErrorInTable(:serviceunav,method)
       puts "#{Time.now}: Service is down! Over Capacity Error!" 
       retry  
     
     end
   end
 
-  def lookUpUsers(ids)
+  def lookUpUsers(ids,method)
+   
+
    begin
     userlist = Twitter.users(ids)
     
     rescue Twitter::Error::TooManyRequests => error
+      Database.insertErrorInTable(:toomany,method)
       puts "#{Time.now}: Rate Limit hit! Too many requests! Going to sleep for #{error.rate_limit.reset_in} seconds"
       sleep error.rate_limit.reset_in
       retry
     
     rescue Twitter::Error::BadGateway => error
+      Database.insertErrorInTable(:badgateway,method)
       puts "#{Time.now}: BadGateway Error!"
       retry
     
     rescue Twitter::Error::ClientError => error
+      Database.insertErrorInTable(:clienterror,method)
       puts "#{Time.now}: Client Error!"
       userlist={}
     
       
     rescue Twitter::Error::ServiceUnavailable => error
-      puts "#{Time.now}: Service is down! Over Capacity Error!" 
+      puts "#{Time.now}: Service is down! Over Capacity Error!"
+      Database.insertErrorInTable(:serviceunav,method) 
       retry
 
     rescue Twitter::Error::InternalServerError => error
+      Database.insertErrorInTable(:internalserv,method)
       puts "Something is technically wrong."
       retry
     end
@@ -171,11 +210,17 @@ class TwitterAPI
       puts userid      
       count = followerscount/5000
       puts count
+
+      response = self.getFollowers(userid,-1)
+      # if response is error, returns empty list
+      if response == nil
+        return {}
+      end
       
       if count == 0  
-        followers = self.getFollowers(userid,-1).ids
+        return response.ids
       else
-        response = self.getFollowers(userid,-1)
+        
         followers = response.ids
         
         count.times do
@@ -193,11 +238,17 @@ class TwitterAPI
       puts userid      
       count = friendscount/5000
       puts count
-      
+
+      response = self.getFriends(userid,-1)
+      # if response is error, returns empty list
+      if response == nil
+        return {}
+      end
+
       if count == 0  
-        friends = self.getFriends(userid,-1).ids
+        return response.ids
+      
       else
-        response = self.getFriends(userid,-1)
         friends = response.ids
         
         count.times do
@@ -214,16 +265,16 @@ class TwitterAPI
 
 # Gets all the user Info regarding a list of followers. 
 #It now works for followers and friends, despite the variables refering to followers
-  def getUsersInfo(followers)
-    followerlist = Array.new
+  def getUsersInfo(users,method)
+    userslist = Array.new
 
-    chunkfollowers = followers.each_slice(100).to_a
-    chunkfollowers.each{ |item|
+    chunkusers = users.each_slice(100).to_a
+    chunkusers.each{ |item|
       puts "#{Time.now}: Slicing list!"
-      response = self.lookUpUsers(item)
-      followerlist.concat(response) }
+      response = self.lookUpUsers(item,method)
+      userslist.concat(response) }
 
-    followerlist
+    userslist
     
   end
 
@@ -275,7 +326,7 @@ class TwitterAPI
 
   #from an array of ids, only does the lookup for the ones that
   #don't belong in DB. Returns array of users
-  def lookUpNewUsers(userids, savedids)
+  def lookUpNewUsers(userids, savedids,method)
  
     listusers = Array.new
 
@@ -283,7 +334,7 @@ class TwitterAPI
       listusers.push(item) unless self.verifyUserId(item, savedids)
     }
 
-    self.lookUpUsers(listusers)
+    self.lookUpUsers(listusers,method)
    end
 
   def filterNewUsers(userids, savedids)

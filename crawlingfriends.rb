@@ -9,6 +9,8 @@ class CrawlingFriends
     @twitter = TwitterAPI.new
     @tableusers = :utilizadorporfriend
     @tablefriends = :friends
+    @method = "utilizadorporfriend"
+    @timelimit = Time.now + 2.days
 
 
   end
@@ -18,7 +20,7 @@ class CrawlingFriends
   end
 
   def buildSeed(names)   
-    seed = @twitter.lookUpUsers(names)
+    seed = @twitter.lookUpUsers(names,@method)
     Database.insertUsers(seed,@tableusers)
   end
 
@@ -66,7 +68,7 @@ class CrawlingFriends
           listusers.push(item)
       end }
 
-    @twitter.lookUpUsers(listusers)
+    @twitter.lookUpUsers(listusers,@method)
    end
 
    def filterNewUsers(userids, savedids)
@@ -102,6 +104,10 @@ class CrawlingFriends
     savedids = Database.getUserIdsFromDb(@tableusers)
     
     listusersids = @twitter.getAllFriends(iduser, friendscount)
+    
+    if listusersids == {}
+      return {}
+    end
 
     # to filter the users that are new to the DB
     #newusers = self.filterNewUsers(listusersids, savedids)
@@ -111,7 +117,7 @@ class CrawlingFriends
     
     # to get all the info from the users.listuserids-oldusers give
     # only the new users
-    listusers = @twitter.getUsersInfo(listusersids-oldusers)
+    listusers = @twitter.getUsersInfo(listusersids-oldusers,@method)
    
     #analyse the user's info, to filter the valid users. This will not be used at the moment!
     # filteredusers = self.filterValidUsers(listusers)
@@ -130,6 +136,10 @@ class CrawlingFriends
 
     crawlresponse = self.crawlUser(iduser, friendscount)
     
+    if crawlresponse == {}
+      return
+    end
+    
     Database.insertNewUsers(iduser, crawlresponse,@tableusers)
   end
 
@@ -141,18 +151,16 @@ class CrawlingFriends
 
       uncrawled = Database.getUncrawledUsers(@tableusers)
 
-    #Termina execução caso já não existam mais utilizadores para explorar
-    if uncrawled.length == 0
-      puts "no more users to crawl! The end!"
+    #Termina execução caso já não existam mais utilizadores para explorar, ou 
+    if uncrawled.length == 0 || Time.now > @timelimit + 2
+      puts "#{Time.now}: no more users to crawl! The end!"
       return  
     end
 
     crawlAllUsers(uncrawled)
     
   end
-    
-
-
+  
 end
 
 #invocação da execução
