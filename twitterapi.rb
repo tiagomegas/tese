@@ -2,8 +2,6 @@ require 'twitter'
 require './database.rb'
 require 'active_support/time'
 
-
-
 class TwitterAPI
 
   def initialize
@@ -13,6 +11,9 @@ class TwitterAPI
   end
 
   def configure
+    
+    #setting the credentials
+
     Twitter.configure do |config|
       config.consumer_key = "5HwJKF261Qal0p1ZAmMLZg"
       config.consumer_secret = "mPlbSLkoADM6GqfxWr6O56CQQ3TWYKHp14It8ATzIQ"
@@ -30,42 +31,87 @@ class TwitterAPI
   end
 
   def getFriends(userid,cursor)
-    method="utilizadorporfriend"
+    method="utilizadorporfriend_getfriends"
+
     begin
     
-    response = Twitter.friend_ids(userid, {:cursor=>cursor})
+    userlist= Twitter.friend_ids(userid, {:cursor=>cursor})
 
-      rescue Twitter::Error::TooManyRequests => error
-        puts "#{Time.now}: Rate Limit hit! Going to sleep for #{error.rate_limit.reset_in}"
-        Database.insertErrorInTable(:toomany,method)
-        sleep error.rate_limit.reset_in
-        retry
+    rescue Twitter::Error::BadRequest => error
+      Database.insertErrorInTable(:badrequest,method)
+      puts "#{Time.now}: Bad Request!"
+      Database.insertInvocation(method,Time.now,2,0)
+      userlist={}
+
+    rescue Twitter::Error::Forbidden => error
+      Database.insertErrorInTable(:forbidden,method)
+      puts "#{Time.now}: Forbidden!"
+      Database.insertInvocation(method,Time.now,3,0)
+      userlist={}
+
+    rescue Twitter::Error::NotAcceptable => error
+      Database.insertErrorInTable(:notacceptable,method)
+      Database.insertInvocation(method,Time.now,4,0)
+      puts "#{Time.now}: Not Acceptable!"
+     
+
+    rescue Twitter::Error::NotFound => error
+      Database.insertErrorInTable(:notfound,method)
+      Database.insertInvocation(method,Time.now,5,0)
+      puts "#{Time.now}: Not Found!"
+
+
+    rescue Twitter::Error::Unauthorized=> error
+      Database.insertErrorInTable(:unauthorized,method)
+      Database.insertInvocation(method,Time.now,6,0)
+      puts "#{Time.now}: Unauthorized!"
+
+      
+
+    rescue Twitter::Error::UnprocessableEntity=> error
+      Database.insertErrorInTable(:unprocessableentity,method)
+      Database.insertInvocation(method,Time.now,7,0)
+      puts "#{Time.now}: Unprocessable Entity!"
+      userlist={}
+    #
+
+    rescue Twitter::Error::TooManyRequests => error
+      puts "#{Time.now}: Rate Limit hit! Going to sleep for #{error.rate_limit.reset_in}"
+      Database.insertInvocation(method,Time.now,8,0)
+      Database.insertErrorInTable(:toomany,method)
+      sleep error.rate_limit.reset_in
+      retry
     
       rescue Twitter::Error::BadGateway => error
         puts "#{Time.now}: BadGateway ERRa!!1"
+        Database.insertInvocation(method,Time.now,9,0)
         Database.insertErrorInTable(:badgateway,method)
         sleep 5
         retry
-    
-      rescue Twitter::Error::ClientError => error
-        Database.insertErrorInTable(:clienterror,method)
-        puts "#{Time.now}: Client Error!Aparently all users are unavailable!"
-        
-        
-
+  
       rescue Twitter::Error::ServiceUnavailable => error
         Database.insertErrorInTable(:serviceunav,method)
+        Database.insertInvocation(method,Time.now,10,0)
         puts "#{Time.now}: Service is down! Over Capacity Error!" 
         retry
 
         rescue Twitter::Error::InternalServerError => error
         Database.insertErrorInTable(:internalserv,method)
+        Database.insertInvocation(method,Time.now,11,0)
         puts "#{Time.now}: InternalServerError: Something is technically wrong." 
         retry
 
+        rescue Twitter::Error::ClientError => error
+          Database.insertInvocation(method,Time.now,12,0)
+        Database.insertErrorInTable(:clienterror,method)
+        puts "#{Time.now}: Weird bug isn't it?"
+        retry
 
-    
+        else 
+          Database.insertInvocation(method,Time.now,1,userlist.ids.length)
+          return userlist
     end
+   
    end
   
   # term é o contéudo da query. Count vai de 0 a 100 por chamada. Since_id é o limite min de tweet, sendo que 0 o default.
@@ -75,129 +121,327 @@ class TwitterAPI
       
     response = Twitter.search(term,{:count=>count, :since_id=>since_id})
     
+     rescue Twitter::Error::BadRequest => error
+      Database.insertErrorInTable(:badrequest,method)
+      Database.insertInvocation(method,Time.now,2,0)
+      puts "#{Time.now}: Bad Request!"
+      userlist={}
+
+    rescue Twitter::Error::Forbidden => error
+      Database.insertErrorInTable(:forbidden,method)
+      Database.insertInvocation(method,Time.now,3,0)
+      puts "#{Time.now}: Forbidden!"
+      userlist={}
+
+    rescue Twitter::Error::NotAcceptable => error
+      Database.insertErrorInTable(:notacceptable,method)
+      Database.insertInvocation(method,Time.now,4,0)
+      puts "#{Time.now}: Not Acceptable!"
+      userlist={}
+
+    rescue Twitter::Error::NotFound => error
+      Database.insertErrorInTable(:notfound,method)
+      Database.insertInvocation(method,Time.now,5,0)
+      puts "#{Time.now}: Not Found!"
+      userlist={}
+
+    rescue Twitter::Error::Unauthorized=> error
+      Database.insertErrorInTable(:unauthorized,method)
+      Database.insertInvocation(method,Time.now,6,0)
+      puts "#{Time.now}: Unauthorized!"
+    
+
+    rescue Twitter::Error::UnprocessableEntity=> error
+      Database.insertErrorInTable(:unprocessableentity,method)
+      Database.insertInvocation(method,Time.now,7,0)
+      puts "#{Time.now}: Unprocessable Entity!"
+      userlist={}
+
     rescue Twitter::Error::TooManyRequests => error
       Database.insertErrorInTable(:toomany,method)
+      Database.insertInvocation(method,Time.now,8,0)
       puts "#{Time.now}: Rate Limit hit! Going to sleep for #{error.rate_limit.reset_in}"
       sleep error.rate_limit.reset_in
       retry
 
     rescue Twitter::Error::BadGateway => error
       Database.insertErrorInTable(:badgateway,method)
+      Database.insertInvocation(method,Time.now,9,0)
       puts "#{Time.now}: BadGateway ERRa!!1"
       retry
 
     rescue Twitter::Error::ServiceUnavailable => error
       Database.insertErrorInTable(:serviceunav,method)
+      Databse.insertInvocation(method,Time.now,10,0)
       puts "#{Time.now}: Service is down! Over Capacity Error!" 
       retry
 
-      rescue Twitter::Error::Unauthorized => error
-        puts "#{Time.now}: Could not authenticate you" 
-
       rescue Twitter::Error::InternalServerError => error
       Database.insertErrorInTable(:internalserv,method)
+      Database.insertInvocation(method,Time.now,12,0)
       puts "#{Time.now}: InternalServerError: Something is technically wrong." 
       retry
       
+      rescue Twitter::Error::ClientError => error
+        Database.insertErrorInTable(:clienterror,method)
+        puts "#{Time.now}: Weird bug isn't it?"
+        userlist={}
 
-    
+
+
     end
 
     
    end
 
   def getFollowers(userid,cursor)
-    method="utilizadorporfol"
+    method="utilizadorporfol_getfols"
     begin
-    response = Twitter.follower_ids(userid, {:cursor=>cursor})
     
+    userlist = Twitter.follower_ids(userid, {:cursor=>cursor})
+    
+     rescue Twitter::Error::BadRequest => error
+      Database.insertErrorInTable(:badrequest,method)
+      puts "#{Time.now}: Bad Request!"
+      Database.insertInvocation(method,Time.now,2,0)
+      userlist={}
+
+    rescue Twitter::Error::Forbidden => error
+      Database.insertErrorInTable(:forbidden,method)
+      puts "#{Time.now}: Forbidden!"
+      Database.insertInvocation(method,Time.now,3,0)
+      userlist={}
+
+    rescue Twitter::Error::NotAcceptable => error
+      Database.insertErrorInTable(:notacceptable,method)
+      Database.insertInvocation(method,Time.now,4,0)
+      puts "#{Time.now}: Not Acceptable!"
+     
+
+    rescue Twitter::Error::NotFound => error
+      Database.insertErrorInTable(:notfound,method)
+      Database.insertInvocation(method,Time.now,5,0)
+      puts "#{Time.now}: Not Found!"
+
+
+    rescue Twitter::Error::Unauthorized=> error
+      Database.insertErrorInTable(:unauthorized,method)
+      Database.insertInvocation(method,Time.now,6,0)
+      puts "#{Time.now}: Unauthorized!"
+      
+      
+
+    rescue Twitter::Error::UnprocessableEntity=> error
+      Database.insertErrorInTable(:unprocessableentity,method)
+      Database.insertInvocation(method,Time.now,7,0)
+      puts "#{Time.now}: Unprocessable Entity!"
+      userlist={}
+    #
+
     rescue Twitter::Error::TooManyRequests => error
-      Database.insertErrorInTable(:toomany,method)
       puts "#{Time.now}: Rate Limit hit! Going to sleep for #{error.rate_limit.reset_in}"
+      Database.insertInvocation(method,Time.now,8,0)
+      Database.insertErrorInTable(:toomany,method)
       sleep error.rate_limit.reset_in
       retry
     
-    rescue Twitter::Error::BadGateway => error
-      Database.insertErrorInTable(:badgateway,method)
-      puts "#{Time.now}: BadGateway ERRa!!1"
-      retry
-    
-    rescue Twitter::Error::ClientError => error
-      Database.insertErrorInTable(:clienterror,method)
-      puts "#{Time.now}: Client Error!Aparently all users are unavailable!"
-     
-      
+      rescue Twitter::Error::BadGateway => error
+        puts "#{Time.now}: BadGateway ERRa!!1"
+        Database.insertInvocation(method,Time.now,9,0)
+        Database.insertErrorInTable(:badgateway,method)
+        sleep 5
+        retry
+  
+      rescue Twitter::Error::ServiceUnavailable => error
+        Database.insertErrorInTable(:serviceunav,method)
+        Database.insertInvocation(method,Time.now,10,0)
+        puts "#{Time.now}: Service is down! Over Capacity Error!" 
+        retry
 
-    rescue Twitter::Error::ServiceUnavailable => error
-      Database.insertErrorInTable(:serviceunav,method)
-      puts "#{Time.now}: Service is down! Over Capacity Error!" 
-      retry
+        rescue Twitter::Error::InternalServerError => error
+        Database.insertErrorInTable(:internalserv,method)
+        Database.insertInvocation(method,Time.now,11,0)
+        puts "#{Time.now}: InternalServerError: Something is technically wrong." 
+        retry
+
+        rescue Twitter::Error::ClientError => error
+          Database.insertInvocation(method,Time.now,12,0)
+        Database.insertErrorInTable(:clienterror,method)
+        puts "#{Time.now}: Weird bug isn't it?"
+        retry
+
+          else 
+           Database.insertInvocation(method,Time.now,1,userlist.ids.length)
+           return userlist
+         
     
     end
+ 
   end
 
   def lookUpUser(id,method)
     
    begin
-    user = Twitter.user(id)
-    
+    userlist = Twitter.user(id)
+    #client errors!
+    rescue Twitter::Error::BadRequest => error
+      Database.insertErrorInTable(:badrequest,method)
+      puts "#{Time.now}: Bad Request!"
+      Database.insertInvocation(method,Time.now,2,0)
+      userlist={}
+
+    rescue Twitter::Error::Forbidden => error
+      Database.insertErrorInTable(:forbidden,method)
+      puts "#{Time.now}: Forbidden!"
+      Database.insertInvocation(method,Time.now,3,0)
+      userlist={}
+
+    rescue Twitter::Error::NotAcceptable => error
+      Database.insertErrorInTable(:notacceptable,method)
+      Database.insertInvocation(method,Time.now,4,0)
+      puts "#{Time.now}: Not Acceptable!"
+     
+
+    rescue Twitter::Error::NotFound => error
+      Database.insertErrorInTable(:notfound,method)
+      Database.insertInvocation(method,Time.now,5,0)
+      puts "#{Time.now}: Not Found!"
+
+
+    rescue Twitter::Error::Unauthorized=> error
+      Database.insertErrorInTable(:unauthorized,method)
+      Database.insertInvocation(method,Time.now,6,0)
+      puts "#{Time.now}: Unauthorized!"
+      
+
+    rescue Twitter::Error::UnprocessableEntity=> error
+      Database.insertErrorInTable(:unprocessableentity,method)
+      Database.insertInvocation(method,Time.now,7,0)
+      puts "#{Time.now}: Unprocessable Entity!"
+      userlist={}
+    #
+
     rescue Twitter::Error::TooManyRequests => error
+      puts "#{Time.now}: Rate Limit hit! Going to sleep for #{error.rate_limit.reset_in}"
+      Database.insertInvocation(method,Time.now,8,0)
       Database.insertErrorInTable(:toomany,method)
-      puts "#{Time.now}: Rate Limit hit! Too many requests! Going to sleep for #{error.rate_limit.reset_in}"
       sleep error.rate_limit.reset_in
       retry
     
-    rescue Twitter::Error::BadGateway => error
-      Database.insertErrorInTable(:badgateway,method)
-      puts "#{Time.now}: BadGateway Error!"
-      retry
-    
-    rescue Twitter::Error::ClientError => error
-      Database.insertErrorInTable(:clienterror,method)
-      puts "#{Time.now}: Client Error!"
+      rescue Twitter::Error::BadGateway => error
+        puts "#{Time.now}: BadGateway ERRa!!1"
+        Database.insertInvocation(method,Time.now,9,0)
+        Database.insertErrorInTable(:badgateway,method)
+        sleep 5
+        retry
+  
+      rescue Twitter::Error::ServiceUnavailable => error
+        Database.insertErrorInTable(:serviceunav,method)
+        Database.insertInvocation(method,Time.now,10,0)
+        puts "#{Time.now}: Service is down! Over Capacity Error!" 
+        retry
 
-    
-    rescue Twitter::Error::ServiceUnavailable => error
-      Database.insertErrorInTable(:serviceunav,method)
-      puts "#{Time.now}: Service is down! Over Capacity Error!" 
-      retry  
-    
+        rescue Twitter::Error::InternalServerError => error
+        Database.insertErrorInTable(:internalserv,method)
+        Database.insertInvocation(method,Time.now,11,0)
+        puts "#{Time.now}: InternalServerError: Something is technically wrong." 
+        retry
+
+        rescue Twitter::Error::ClientError => error
+          Database.insertInvocation(method,Time.now,12,0)
+        Database.insertErrorInTable(:clienterror,method)
+        puts "#{Time.now}: Weird bug isn't it?"
+        retry
+
     end
   end
 
-  def lookUpUsers(ids,method)
-   
+  def lookUpUsers(ids,name)
+   method = name + '_lookup'
 
    begin
     userlist = Twitter.users(ids)
     
+    rescue Twitter::Error::BadRequest => error
+      Database.insertErrorInTable(:badrequest,method)
+      puts "#{Time.now}: Bad Request!"
+      Database.insertInvocation(method,Time.now,2,0)
+      userlist={}
+      return
+
+    rescue Twitter::Error::Forbidden => error
+      Database.insertErrorInTable(:forbidden,method)
+      puts "#{Time.now}: Forbidden!"
+      Database.insertInvocation(method,Time.now,3,0)
+      userlist={}
+      return
+
+    rescue Twitter::Error::NotAcceptable => error
+      Database.insertErrorInTable(:notacceptable,method)
+      Database.insertInvocation(method,Time.now,4,0)
+      puts "#{Time.now}: Not Acceptable!"
+      return
+     
+
+    rescue Twitter::Error::NotFound => error
+      Database.insertErrorInTable(:notfound,method)
+      Database.insertInvocation(method,Time.now,5,0)
+      puts "#{Time.now}: Not Found!"
+      return
+
+
+    rescue Twitter::Error::Unauthorized=> error
+      Database.insertErrorInTable(:unauthorized,method)
+      Database.insertInvocation(method,Time.now,6,0)
+      puts "#{Time.now}: Unauthorized!"
+      return
+      
+
+    rescue Twitter::Error::UnprocessableEntity=> error
+      Database.insertErrorInTable(:unprocessableentity,method)
+      Database.insertInvocation(method,Time.now,7,0)
+      puts "#{Time.now}: Unprocessable Entity!"
+      return userlist={}
+    #
+
     rescue Twitter::Error::TooManyRequests => error
+      puts "#{Time.now}: Rate Limit hit! Going to sleep for #{error.rate_limit.reset_in}"
+      Database.insertInvocation(method,Time.now,8,0)
       Database.insertErrorInTable(:toomany,method)
-      puts "#{Time.now}: Rate Limit hit! Too many requests! Going to sleep for #{error.rate_limit.reset_in} seconds"
       sleep error.rate_limit.reset_in
       retry
     
-    rescue Twitter::Error::BadGateway => error
-      Database.insertErrorInTable(:badgateway,method)
-      puts "#{Time.now}: BadGateway Error!"
-      retry
-    
-    rescue Twitter::Error::ClientError => error
-      Database.insertErrorInTable(:clienterror,method)
-      puts "#{Time.now}: Client Error!"
-      userlist={}
-    
-      
-    rescue Twitter::Error::ServiceUnavailable => error
-      puts "#{Time.now}: Service is down! Over Capacity Error!"
-      Database.insertErrorInTable(:serviceunav,method) 
-      retry
+      rescue Twitter::Error::BadGateway => error
+        puts "#{Time.now}: BadGateway ERRa!!1"
+        Database.insertInvocation(method,Time.now,9,0)
+        Database.insertErrorInTable(:badgateway,method)
+        sleep 5
+        retry
+  
+      rescue Twitter::Error::ServiceUnavailable => error
+        Database.insertErrorInTable(:serviceunav,method)
+        Database.insertInvocation(method,Time.now,10,0)
+        puts "#{Time.now}: Service is down! Over Capacity Error!" 
+        retry
 
-    rescue Twitter::Error::InternalServerError => error
-      Database.insertErrorInTable(:internalserv,method)
-      puts "Something is technically wrong."
-      retry
+        rescue Twitter::Error::InternalServerError => error
+        Database.insertErrorInTable(:internalserv,method)
+        Database.insertInvocation(method,Time.now,11,0)
+        puts "#{Time.now}: InternalServerError: Something is technically wrong." 
+        retry
+
+        rescue Twitter::Error::ClientError => error
+        Database.insertInvocation(method,Time.now,12,0)
+        Database.insertErrorInTable(:clienterror,method)
+        puts "#{Time.now}: Weird bug isn't it?"
+        retry
+
+        else 
+          Database.insertInvocation(method,Time.now,1,userlist.length)
+          return userlist
+    
     end
+  
   end
 
 # Methods that using the simple ones above combined, get more information
@@ -216,6 +460,7 @@ class TwitterAPI
       if response == nil
         return {}
       end
+
       
       if count == 0  
         return response.ids
@@ -270,9 +515,13 @@ class TwitterAPI
 
     chunkusers = users.each_slice(100).to_a
     chunkusers.each{ |item|
-      puts "#{Time.now}: Slicing list!"
+      puts "#{Time.now}: Getting info from 100 users!"
       response = self.lookUpUsers(item,method)
-      userslist.concat(response) }
+      
+      if response != {}
+      userslist.concat(response)
+      end
+      }
 
     userslist
     

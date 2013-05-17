@@ -8,18 +8,16 @@ class UserID
 
     @twitter = TwitterAPI.new
     @table = :utilizadorporid
-    @maxnumber = 1380121788
-    #account created at 2013-04-25 19:38:44 +0100
-    @generatedids = Database.getUserIdsFromDb(@table)
+    @maxnumber = 1416190129
+    #account created at 2013-05-09 19:31:11 +0100
+    @generatedids = Database.getUserIdsFromDb(@table).inject({}){|h,v| h[v]= nil; h}
     @timelimit = Time.now + 2.days
     @method = "utilizadorporid"
 
-    
-    
   	end
 
 	def generateRandom
-		return 1 + rand(@maxnumber)
+		return (1 + rand(@maxnumber)).to_s
 	end
 
 	def generateRandomNumbers()
@@ -30,9 +28,9 @@ class UserID
 		
 		begin			
 			n = generateRandom
-			if !@generatedids.include? n 
-				@generatedids.push(n)
-				list.push(n)
+			if !@generatedids.key? n 
+				@generatedids[n]=nil
+				list.push(n.to_i)
 				end
 		
 		end until list.length == 100			
@@ -43,7 +41,6 @@ class UserID
 
 	def maxnumber
 		return @maxnumber
-		
 	end
 
 	def lookRandomUser
@@ -54,7 +51,7 @@ class UserID
 	end
 
 	def lookRandomUsers
-		numbers = self.generateRandomNumbers
+		#numbers = self.generateRandomNumbers
 		puts "#{Time.now}: Getting user info!"
 		return @twitter.lookUpUsers(self.generateRandomNumbers,@method)
 		
@@ -74,11 +71,11 @@ class UserID
 	end
 
 	def lookByIds
-		count=0
+		
 		while Time.now < @timelimit
 			a = self.lookRandomUsers
 			Database.insertUsers(a,@table) 
- 			count+=a.length
+ 			
 		end
 		
 	end

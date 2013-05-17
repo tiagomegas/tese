@@ -17,7 +17,7 @@ class TwitterStream
 
 
 	def initialize
-		@table = :tweetsporstream
+		@table = :twitterstream
 		self.configure
 	end
 
@@ -27,9 +27,10 @@ class TwitterStream
 		TweetStream::Client.new.sample do |status|
 		  # The status object is a special Hash with
 		  # method access to its keys.
+		puts "Begin the STREAM!"
 		puts "#{status.user.screen_name}"
 		puts "#{status.text}"
-		Database.insertTweetInTable(status,@table)
+		#Database.insertTweetInTable(status,@table)
 		 	
 		end
 	end
@@ -37,8 +38,9 @@ class TwitterStream
 	def getFilteredData(filter)
 		#Filters the data of the stream, according to the terms. the arg filter is an array of terms.
 		TweetStream::Client.new.track(filter) do |status|
-	  	puts "#{status.created_at} #{status.user.screen_name}: #{status.text}"
-	  	Database.insertTweetInTable(status,@table)
+	  	puts "Begin the STREAM!"
+	   puts "."
+	   Database.insertTweetInTable(status,@table)
 		end
 
 	end
@@ -48,3 +50,5 @@ end
 t=TwitterStream.new
 terms = ['relvas','governo','cavaco','socrates','ps','psd']
 t.getFilteredData(terms)
+#t.getSample
+

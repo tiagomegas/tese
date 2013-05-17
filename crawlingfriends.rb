@@ -11,7 +11,7 @@ class CrawlingFriends
     @tablefriends = :friends
     @method = "utilizadorporfriend"
     @timelimit = Time.now + 2.days
-
+   # @idlist = Database.getUserIdsFromDb(@table).inject({}){|h,v| h[v]= nil; h}
 
   end
 
@@ -53,8 +53,7 @@ class CrawlingFriends
 
   #returns true if id in array
   def verifyUserId(id, alluserids)
-     
-    alluserids.include? id
+     alluserids.has_key?(id) 
   end
 
   #from an array of ids, only does the lookup for the ones that
@@ -101,7 +100,8 @@ class CrawlingFriends
     puts iduser
     puts friendscount
 
-    savedids = Database.getUserIdsFromDb(@tableusers)
+    #transforms the database response into hash
+    savedids = Database.getUserIdsFromDb(@tableusers).inject({}){|h,v| h[v]= nil; h}
     
     listusersids = @twitter.getAllFriends(iduser, friendscount)
     
@@ -141,18 +141,23 @@ class CrawlingFriends
     end
     
     Database.insertNewUsers(iduser, crawlresponse,@tableusers)
+
+    if Time.now > @timelimit
+        puts puts "#{Time.now}: Time limit hit! Byebye!"
+        abort
+    end
   end
 
   def crawlAllUsers(uncrawled)
       
       uncrawled.each { |key, value| 
       self.crawlAndSave(key, value)
-      }
+     }
 
       uncrawled = Database.getUncrawledUsers(@tableusers)
 
-    #Termina execução caso já não existam mais utilizadores para explorar, ou 
-    if uncrawled.length == 0 || Time.now > @timelimit + 2
+    #Termina execução caso já não existam mais utilizadores para explorar, ou o tempo limite seja ultrapassado
+    if uncrawled.length == 0 
       puts "#{Time.now}: no more users to crawl! The end!"
       return  
     end
@@ -170,7 +175,7 @@ uncrawled = Database.getUncrawledUsers(table)
 #Construir seed se necessário
 if uncrawled.length == 0
   puts 'Jogo!'
-  crawl.buildSeed('megas')
+  crawl.buildSeed(['corpodormente','pedrotochas','havidaemmarkl','fernandoalvim','davidfonseca','brunoaleixo','pauloquerido'])
   uncrawled = Database.getUncrawledUsers(table)
 end
 

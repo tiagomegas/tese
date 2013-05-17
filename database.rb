@@ -21,17 +21,17 @@ class Database
 		end
 			
 	end
-
+  
 	def self.getUserIdsFromDb(table)
 		
 		Database.connect
     
     idusers = Array.new
     dataset = @db[table]
-    allusers = dataset.all    
+    allusers = dataset.order(:entry_date).all    
 
     allusers.each { |item|
-      idusers.push(item[:id]) }
+      idusers.push(item[:id].to_i) }
 
     idusers
   end
@@ -45,18 +45,26 @@ class Database
     Database.connect
 
     dataset=@db[:followers]
-
+    begin
     dataset.insert(:id=> userid,
                    :followerid=> followerid)
+    rescue Mysql2::Error::Duplicate => error
+      puts "Erro!Chave duplicada!"
+
+    end
   end
 
   def self.insertFriendRelation(userid, friendid)
     Database.connect
 
     dataset=@db[:friends]
-
+    begin
     dataset.insert(:id=> userid,
                    :friendid=> friendid)
+    rescue Mysql2::Error::Duplicate => error
+      puts "Erro!Chave duplicada!"
+
+    end
   end
 
   def self.InsertFollowerRelations(userid, followersid)
@@ -98,13 +106,12 @@ class Database
     
     puts @db
 
-
     idusers = Hash.new
     dataset = @db[table]
-    uncrawledusers = dataset.filter(:crawled => 0)  
+    uncrawledusers = dataset.order(:entry_date).filter(:crawled => 0)
 
     uncrawledusers.each { |item|
-     idusers.store(item[:id],item[count]) }
+     idusers.store(item[:id].to_i,item[count]) }
 
     return idusers
    end
@@ -156,6 +163,8 @@ class Database
       tweetdate=user.status.created_at.utc
     end
 
+    begin
+
     dataset.insert(:name=> user.name, 
                    :id=> user.attrs[:id_str], 
                    :screen_name=>user.screen_name,
@@ -175,6 +184,11 @@ class Database
                    :listed_count=>user.listed_count,
                    :timezone=>user.time_zone)
     
+    rescue Mysql2::Error::Duplicate => error
+      puts "Erro!Chave duplicada!"
+
+    end
+
     puts "#{Time.now}: Inserido utilizador #{user.screen_name} na BD"
   end
 
@@ -191,13 +205,14 @@ class Database
         coordy=nil
     end
 
-    
+    begin
+
     dataset.insert(:id=> tweet.attrs[:id_str],
                    :status => tweet.text,
                    :entry_date => Time.now.utc,
                    :user_id => tweet.attrs[:id_str],
                    :source => tweet.source,
-                   :created_at => tweet.created_at,
+                   :created_at => tweet.created_at.utc,
                    :in_reply_to_status =>  tweet.attrs[:in_reply_to_status_id_str],
                    :in_reply_to_user => tweet.attrs[:in_reply_to_user_id_str],
                    :lang => tweet[:attrs][:lang],
@@ -205,6 +220,12 @@ class Database
                    :favorite_count=>tweet.attrs[:favorite_count],
                    :coordx=>coordx,
                    :coordy=>coordy)
+    
+    rescue Mysql2::Error::Duplicate => error
+      puts "Erro!Chave duplicada!"
+
+    end
+
     
     puts "#{Time.now}: Inserido tweet #{tweet.id} na BD"
 
@@ -228,6 +249,17 @@ class Database
     dataset.where(:metodo=>method).update(error=>error + 1)
     
 
+  end
+
+  def self.insertInvocation(method,date,response,hitrate)
+    Database.connect
+    dataset=@db[:inv]
+
+    dataset.insert(:method=>method,
+                   :entry=>date.utc,
+                   :response=>response,
+                   :hitrate=>hitrate)
+    
   end
 
 end

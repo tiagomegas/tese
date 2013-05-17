@@ -53,7 +53,7 @@ class CrawlingFollowers
   #returns true if id in array
   def verifyUserId(id, alluserids)
      
-    alluserids.include? id
+    alluserids.has_key?(id) 
   end
 
   #from an array of ids, only does the lookup for the ones that
@@ -100,7 +100,7 @@ class CrawlingFollowers
     puts iduser
     puts followerscount
 
-    savedids = Database.getUserIdsFromDb(@tableusers)
+    savedids = Database.getUserIdsFromDb(@tableusers).inject({}){|h,v| h[v]= nil; h}
     
     listusersids = @twitter.getAllFollowers(iduser, followerscount)
     if listusersids == {}
@@ -128,9 +128,11 @@ class CrawlingFollowers
   end
 
   def crawlAndSave(iduser, followerscount)
-   
+    
+
     puts "userid: #{iduser}"
     puts "followerscount: #{followerscount}"
+
 
     crawlresponse = self.crawlUser(iduser, followerscount)
 
@@ -139,6 +141,8 @@ class CrawlingFollowers
     end
     
     Database.insertNewUsers(iduser, crawlresponse,@tableusers)
+
+    
   end
 
   def crawlAllUsers(uncrawled)
@@ -150,7 +154,7 @@ class CrawlingFollowers
       uncrawled = Database.getUncrawledUsers(@tableusers)
 
     #Termina execução caso já não existam mais utilizadores para explorar, ou o tempo limite seja ultrapassado
-    if uncrawled.length == 0 || Time.now > @timelimit
+    if uncrawled.length == 0 
       puts "The crawl is over!!! See you!"
       return  
     end
@@ -170,7 +174,8 @@ uncrawled = Database.getUncrawledUsers(table)
 #Construir seed se necessário
 if uncrawled.length == 0
   puts 'Jogo!'
-  crawl.buildSeed('megas')
+  crawl.buildSeed(['corpodormente','pedrotochas','havidaemmarkl','fernandoalvim','davidfonseca','brunoaleixo','pauloquerido'])
+  #crawl.buildSeed(['megas','asmonteiro','tcouto'])
   uncrawled = Database.getUncrawledUsers(table)
 end
 
